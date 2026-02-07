@@ -92,6 +92,7 @@ MyOS/
 │   ├── Mutex.hpp          # Synchronization primitive
 │   ├── MemoryManager.hpp  # Heap allocator
 │   ├── FileSystem.hpp     # VFS with I-nodes
+│   ├── Shell.hpp          # Interactive shell
 │   └── Kernel.hpp         # Core orchestrator
 ├── src/
 │   ├── Task.cpp
@@ -99,27 +100,56 @@ MyOS/
 │   ├── Mutex.cpp
 │   ├── MemoryManager.cpp
 │   ├── FileSystem.cpp
+│   ├── Shell.cpp
 │   ├── Kernel.cpp
 │   └── main.cpp
 ├── Makefile
 └── README.md
 ```
 
-## 📖 Example Output
+## 🖥️ Shell Commands
+
+| Command | Example | Description |
+|---------|---------|-------------|
+| `spawn <name> [priority]` | `spawn Worker 0` | Create a task (0=HIGH, 1=LOW) |
+| `ps` | `ps` | List all tasks with status |
+| `run [cycles]` | `run 10` | Execute N CPU cycles |
+| `kill <id>` | `kill 2` | Terminate a task by ID |
+| `mem` | `mem` | Show memory allocation map |
+| `files` | `files` | Show file system I-node table |
+| `help` | `help` | Show command reference |
+| `exit` | `exit` | Shutdown the OS |
+
+### Shell Demo Session
 
 ```
-[Kernel] booting up ... File System Demo
-Context Switch: Running Task 1 [HIGH] (FileWriter)
-[FileSystem] Created file: test.txt
-[FileSystem] Wrote 16 bytes to fd=0
-[FileSystem] Closed fd=0
- *** FileWriter going to sleep ***
-Context Switch: Running Task 2 [LOW] (FileReader)
-[FileSystem] Opened 'test.txt' as fd=0
-[FileSystem] Read 16 bytes from fd=0
-     Read content: "Hello from MyOS!"
---- Inode Table ---
-[0] test.txt | Offset: 0 | Size: 16
+MyOS> spawn HighPriorityTask 0
+[Shell] Spawned task 'HighPriorityTask' with ID 1 [HIGH]
+
+MyOS> spawn LowPriorityTask 1
+[Shell] Spawned task 'LowPriorityTask' with ID 2 [LOW]
+
+MyOS> ps
+┌─────┬────────────────────┬──────────┬──────────┐
+│ ID  │ Name               │ Priority │ State    │
+├─────┼────────────────────┼──────────┼──────────┤
+│ 1   │ HighPriorityTask   │ HIGH     │ READY    │
+│ 2   │ LowPriorityTask    │ LOW      │ READY    │
+└─────┴────────────────────┴──────────┴──────────┘
+
+MyOS> run 15
+[Shell] Running 15 CPU cycles...
+Context Switch: Running Task 1 [HIGH] (HighPriorityTask)
+  [CPU] Task 1 (HighPriorityTask) executing instruction 0
+  ...
+  [CPU] Task 1 (HighPriorityTask) completed!
+Context Switch: Running Task 2 [LOW] (LowPriorityTask)
+  [CPU] Task 2 (LowPriorityTask) executing instruction 0
+  ...
+  [CPU] Task 2 (LowPriorityTask) completed!
+
+MyOS> exit
+[Shell] Shutting down MyOS...
 ```
 
 ## 🧠 Key Concepts Demonstrated
@@ -150,7 +180,6 @@ This project was built following concepts from:
 
 - [ ] Round-robin time slicing with simulated timer
 - [ ] Virtual memory with page tables
-- [ ] Interactive shell for spawning tasks
 - [ ] Directory hierarchy in file system
 - [ ] Multi-level feedback queue scheduler
 
