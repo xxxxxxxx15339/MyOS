@@ -2,129 +2,119 @@
 #include <iostream>
 
 Scheduler::Scheduler() :
-  currentTask(nullptr) {
+  currentThread(nullptr) {
 }
 
-void Scheduler::addTask(Task* task) {
-  if (task->getPriority() == 0) {
-      readyQueueHigh.push(task);
+void Scheduler::addThread(Thread* thread) {
+  if (thread->getPriority() == 0) {
+      readyQueueHigh.push(thread);
   } else {
-      readyQueueLow.push(task);
+      readyQueueLow.push(thread);
   }
 }
 
 // yield() performs scheduling based on Priority
 void Scheduler::yield() {
   
-  // 1. Save current task context
-  if (currentTask != nullptr) {
-      if (currentTask->getState() == TaskState::RUNNING) {
-        currentTask->setState(TaskState::READY);
+  // 1. Save current thread context
+  if (currentThread != nullptr) {
+      if (currentThread->getState() == ThreadState::RUNNING) {
+        currentThread->setState(ThreadState::READY);
         // Re-queue based on priority
-        if (currentTask->getPriority() == 0) {
-            readyQueueHigh.push(currentTask);
+        if (currentThread->getPriority() == 0) {
+            readyQueueHigh.push(currentThread);
         } else {
-            readyQueueLow.push(currentTask);
+            readyQueueLow.push(currentThread);
         }
       } 
       // If BLOCKED or TERMINATED, do nothing (context already saved/irrelevant)
   }
   
-  // 2. Pick next task (Strict Priority)
+  // 2. Pick next thread (Strict Priority)
   if (!readyQueueHigh.empty()) {
-      currentTask = readyQueueHigh.front();
+      currentThread = readyQueueHigh.front();
       readyQueueHigh.pop();
   } else if (!readyQueueLow.empty()) {
-      currentTask = readyQueueLow.front();
+      currentThread = readyQueueLow.front();
       readyQueueLow.pop();
   } else {
-      // Idle
-      if (currentTask && currentTask->getState() == TaskState::RUNNING) {
-          // Keep running current if it was the only one and we just re-queued it? 
-          // Wait, we re-queued it above. So if queues were empty before re-queue, 
-          // they are not empty now if we had a running task.
-          // BUT, we just popped it back off if it was the only one.
-          // So if we are here, it means BOTH queues are empty properly.
-      } else {
-          currentTask = nullptr; 
-          std::cout << "Scheduler: No ready tasks." << std::endl;
-          return;
-      }
+      currentThread = nullptr; 
+      std::cout << "Scheduler: No ready threads." << std::endl;
+      return;
   }
 
-  if (currentTask) {
-      currentTask->setState(TaskState::RUNNING);
-      std::cout << "Context Switch: Running Task " << currentTask->getId() 
-                << " [" << (currentTask->getPriority() == 0 ? "HIGH" : "LOW") << "] " 
-                << "(" << currentTask->getName() << ")" << std::endl;
+  if (currentThread) {
+      currentThread->setState(ThreadState::RUNNING);
+      std::cout << "Context Switch: Running Thread " << currentThread->getId() 
+                << " (PID " << currentThread->getParentPid() << ")"
+                << " [" << (currentThread->getPriority() == 0 ? "HIGH" : "LOW") << "] " 
+                << "(" << currentThread->getName() << ")" << std::endl;
   }
 }
 
-void Scheduler::wakeup(Task* task) {
-    if (task && task->getState() == TaskState::BLOCKED) {
-        task->setState(TaskState::READY);
-        if (task->getPriority() == 0) {
-            readyQueueHigh.push(task);
-            std::cout << "Scheduler: Waking up HIGH Priority Task " << task->getId() << std::endl;
+void Scheduler::wakeup(Thread* thread) {
+    if (thread && thread->getState() == ThreadState::BLOCKED) {
+        thread->setState(ThreadState::READY);
+        if (thread->getPriority() == 0) {
+            readyQueueHigh.push(thread);
+            std::cout << "Scheduler: Waking up HIGH Priority Thread " << thread->getId() << std::endl;
         } else {
-            readyQueueLow.push(task);
-            std::cout << "Scheduler: Waking up LOW Priority Task " << task->getId() << std::endl;
+            readyQueueLow.push(thread);
+            std::cout << "Scheduler: Waking up LOW Priority Thread " << thread->getId() << std::endl;
         }
     }
 }
 
-void Scheduler::blockCurrentlyRunningTask() {
-    if (currentTask) {
-        currentTask->setState(TaskState::BLOCKED);
+void Scheduler::blockCurrentThread() {
+    if (currentThread) {
+        currentThread->setState(ThreadState::BLOCKED);
     }
 }
 
-Task* Scheduler::getCurrentTask() {
-  return currentTask;
+Thread* Scheduler::getCurrentThread() {
+  return currentThread;
 }
 
-std::vector<Task*> Scheduler::getAllTasks() {
-    std::vector<Task*> allTasks;
+std::vector<Thread*> Scheduler::getAllThreads() {
+    std::vector<Thread*> allThreads;
     
-    // Add current task if exists
-    if (currentTask) {
-        allTasks.push_back(currentTask);
+    // Add current thread if exists
+    if (currentThread) {
+        allThreads.push_back(currentThread);
     }
     
     // Copy from high priority queue
-    std::queue<Task*> tempHigh = readyQueueHigh;
+    std::queue<Thread*> tempHigh = readyQueueHigh;
     while (!tempHigh.empty()) {
-        allTasks.push_back(tempHigh.front());
+        allThreads.push_back(tempHigh.front());
         tempHigh.pop();
     }
     
     // Copy from low priority queue
-    std::queue<Task*> tempLow = readyQueueLow;
+    std::queue<Thread*> tempLow = readyQueueLow;
     while (!tempLow.empty()) {
-        allTasks.push_back(tempLow.front());
+        allThreads.push_back(tempLow.front());
         tempLow.pop();
     }
     
-    return allTasks;
+    return allThreads;
 }
 
-bool Scheduler::removeTask(int id) {
-    // Check current task
-    if (currentTask && currentTask->getId() == id) {
-        delete currentTask;
-        currentTask = nullptr;
+bool Scheduler::removeThread(int id) {
+    // Check current thread
+    if (currentThread && currentThread->getId() == id) {
+        currentThread = nullptr;
         return true;
     }
     
     // Helper to remove from queue
-    auto removeFromQueue = [id](std::queue<Task*>& q) -> bool {
-        std::queue<Task*> temp;
+    auto removeFromQueue = [id](std::queue<Thread*>& q) -> bool {
+        std::queue<Thread*> temp;
         bool found = false;
         while (!q.empty()) {
-            Task* t = q.front();
+            Thread* t = q.front();
             q.pop();
             if (t->getId() == id) {
-                delete t;
                 found = true;
             } else {
                 temp.push(t);

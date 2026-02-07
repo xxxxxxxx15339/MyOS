@@ -3,38 +3,38 @@
 #include <queue> 
 #include <memory>
 #include <algorithm>
-#include "Task.hpp"
+#include "Thread.hpp"
 
 class Scheduler {
   private: 
     // Multi-Level Queues
-    std::queue<Task*> readyQueueHigh; // Priority 0
-    std::queue<Task*> readyQueueLow;  // Priority 1
+    std::queue<Thread*> readyQueueHigh; // Priority 0
+    std::queue<Thread*> readyQueueLow;  // Priority 1
     
-    Task* currentTask;
+    Thread* currentThread;
 
   public: 
     Scheduler();
 
-    // Add a new task to the mix 
-    void addTask(Task* task);
+    // Add a new thread to the scheduler 
+    void addThread(Thread* thread);
     
 
-    // The Core Function: Switch to the next task
+    // The Core Function: Switch to the next thread
     void yield();
 
     // Helper to see who is running
-    Task* getCurrentTask();
+    Thread* getCurrentThread();
 
-    // Block the current task (transition to BLOCKED state)
-    void blockCurrentlyRunningTask();
+    // Block the current thread (transition to BLOCKED state)
+    void blockCurrentThread();
 
-    // Wake up a blocked task (transition to READY and add to queue)
-    void wakeup(Task* task);
+    // Wake up a blocked thread (transition to READY and add to queue)
+    void wakeup(Thread* thread);
 
-    // Get all tasks (for ps command)
-    std::vector<Task*> getAllTasks();
+    // Get all threads (for ps command)
+    std::vector<Thread*> getAllThreads();
 
-    // Remove a task by ID (for kill command)
-    bool removeTask(int id);
+    // Remove a thread by ID (for kill command)
+    bool removeThread(int id);
 };

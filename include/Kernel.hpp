@@ -5,6 +5,7 @@
 #include "Mutex.hpp"
 #include "MemoryManager.hpp"
 #include "FileSystem.hpp"
+#include "Process.hpp"
 
 class Shell; // Forward declaration
 
@@ -14,30 +15,45 @@ class Kernel {
     Mutex sharedMutex;
     MemoryManager memoryManager;
     FileSystem fileSystem;
-    int nextTaskId;
+    
+    // Process management
+    std::vector<Process*> processes;
+    int nextPid;
+    int nextThreadId;
 
-    struct SleepingTask {
-        Task* task;
+    struct SleepingThread {
+        Thread* thread;
         int wakeAtTick;
     };
-    std::vector<SleepingTask> sleepList;
+    std::vector<SleepingThread> sleepList;
     int currentTick;
 
   public:
     Kernel();
+    ~Kernel();
 
     void boot();
     void run();  // Legacy mode
     void runCycles(int cycles); // Shell mode
-    void executeInstruction(Task* task);
+    void executeInstruction(Thread* thread);
 
-    // Shell API
+    // Process/Thread API
+    int createProcess(const std::string& name);
+    int spawnThread(int pid, const std::string& name, int priority);
+    void listProcesses();
+    void listThreads();
+    bool killThread(int id);
+    bool killProcess(int pid);
+    
+    // Legacy spawn (creates process with main thread)
     int spawnTask(const std::string& name, int priority);
-    void listTasks();
-    bool killTask(int id);
+    
     void showMemory();
     void showFiles();
 
     MemoryManager& getMemoryManager() { return memoryManager; }
     FileSystem& getFileSystem() { return fileSystem; }
+    
+private:
+    Process* findProcess(int pid);
 };

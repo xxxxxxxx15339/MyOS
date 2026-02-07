@@ -9,7 +9,6 @@ class Shell {
 private:
     Kernel* kernel;
     bool running;
-    int nextTaskId;
 
     std::vector<std::string> tokenize(const std::string& input);
     void printPrompt();
@@ -17,7 +16,10 @@ private:
 
     // Command handlers
     void cmdSpawn(const std::vector<std::string>& args);
+    void cmdFork(const std::vector<std::string>& args);
+    void cmdThread(const std::vector<std::string>& args);
     void cmdPs();
+    void cmdProcs();
     void cmdKill(const std::vector<std::string>& args);
     void cmdMem();
     void cmdFiles();

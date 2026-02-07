@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 
-Shell::Shell(Kernel* k) : kernel(k), running(true), nextTaskId(1) {
+Shell::Shell(Kernel* k) : kernel(k), running(true) {
 }
 
 std::vector<std::string> Shell::tokenize(const std::string& input) {
@@ -45,8 +45,14 @@ void Shell::executeCommand(const std::vector<std::string>& tokens) {
     
     if (cmd == "spawn") {
         cmdSpawn(tokens);
+    } else if (cmd == "fork") {
+        cmdFork(tokens);
+    } else if (cmd == "thread") {
+        cmdThread(tokens);
     } else if (cmd == "ps") {
         cmdPs();
+    } else if (cmd == "procs") {
+        cmdProcs();
     } else if (cmd == "kill") {
         cmdKill(tokens);
     } else if (cmd == "mem") {
@@ -93,25 +99,81 @@ void Shell::cmdSpawn(const std::vector<std::string>& args) {
               << " [" << (priority == 0 ? "HIGH" : "LOW") << "]" << std::endl;
 }
 
+void Shell::cmdFork(const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        std::cout << "Usage: fork <process_name>" << std::endl;
+        std::cout << "       Creates a new process with a main thread" << std::endl;
+        return;
+    }
+    
+    std::string name = args[1];
+    int pid = kernel->createProcess(name);
+    std::cout << "[Shell] Created process '" << name << "' (PID " << pid << ") with main thread" << std::endl;
+}
+
+void Shell::cmdThread(const std::vector<std::string>& args) {
+    if (args.size() < 3) {
+        std::cout << "Usage: thread <pid> <thread_name> [priority]" << std::endl;
+        std::cout << "       priority: 0 = HIGH, 1 = LOW (default)" << std::endl;
+        return;
+    }
+    
+    int pid;
+    try {
+        pid = std::stoi(args[1]);
+    } catch (...) {
+        std::cout << "[Shell] Invalid PID." << std::endl;
+        return;
+    }
+    
+    std::string name = args[2];
+    int priority = 1; // Default LOW
+    
+    if (args.size() >= 4) {
+        try {
+            priority = std::stoi(args[3]);
+            if (priority != 0 && priority != 1) {
+                std::cout << "[Shell] Invalid priority. Using LOW (1)." << std::endl;
+                priority = 1;
+            }
+        } catch (...) {
+            std::cout << "[Shell] Invalid priority. Using LOW (1)." << std::endl;
+        }
+    }
+    
+    int tid = kernel->spawnThread(pid, name, priority);
+    if (tid < 0) {
+        std::cout << "[Shell] Error: Process " << pid << " not found." << std::endl;
+    } else {
+        std::cout << "[Shell] Created thread '" << name << "' (TID " << tid 
+                  << ") in process " << pid << " [" << (priority == 0 ? "HIGH" : "LOW") << "]" << std::endl;
+    }
+}
+
 void Shell::cmdPs() {
-    kernel->listTasks();
+    kernel->listThreads();
+}
+
+void Shell::cmdProcs() {
+    kernel->listProcesses();
 }
 
 void Shell::cmdKill(const std::vector<std::string>& args) {
     if (args.size() < 2) {
-        std::cout << "Usage: kill <task_id>" << std::endl;
+        std::cout << "Usage: kill <thread_id>" << std::endl;
+        std::cout << "       killp <process_id>" << std::endl;
         return;
     }
     
     try {
         int id = std::stoi(args[1]);
-        if (kernel->killTask(id)) {
-            std::cout << "[Shell] Terminated task " << id << std::endl;
+        if (kernel->killThread(id)) {
+            std::cout << "[Shell] Terminated thread " << id << std::endl;
         } else {
-            std::cout << "[Shell] Task " << id << " not found." << std::endl;
+            std::cout << "[Shell] Thread " << id << " not found." << std::endl;
         }
     } catch (...) {
-        std::cout << "[Shell] Invalid task ID." << std::endl;
+        std::cout << "[Shell] Invalid thread ID." << std::endl;
     }
 }
 
@@ -137,17 +199,23 @@ void Shell::cmdRun(const std::vector<std::string>& args) {
 }
 
 void Shell::cmdHelp() {
-    std::cout << "\n┌─────────────────────────────────────────────────────┐" << std::endl;
-    std::cout << "│             MyOS Shell Commands                     │" << std::endl;
-    std::cout << "├─────────────────────────────────────────────────────┤" << std::endl;
-    std::cout << "│  spawn <name> [priority]  Create a new task         │" << std::endl;
-    std::cout << "│                           (0=HIGH, 1=LOW)           │" << std::endl;
-    std::cout << "│  ps                       List all tasks            │" << std::endl;
-    std::cout << "│  kill <id>                Terminate a task          │" << std::endl;
-    std::cout << "│  run [cycles]             Execute CPU cycles        │" << std::endl;
-    std::cout << "│  mem                      Show memory map           │" << std::endl;
-    std::cout << "│  files                    Show inode table          │" << std::endl;
-    std::cout << "│  help                     Show this help            │" << std::endl;
-    std::cout << "│  exit                     Shutdown MyOS             │" << std::endl;
-    std::cout << "└─────────────────────────────────────────────────────┘" << std::endl;
+    std::cout << "\n┌───────────────────────────────────────────────────────────┐" << std::endl;
+    std::cout << "│               MyOS Shell Commands                         │" << std::endl;
+    std::cout << "├───────────────────────────────────────────────────────────┤" << std::endl;
+    std::cout << "│  PROCESS/THREAD MANAGEMENT                                │" << std::endl;
+    std::cout << "│  fork <name>              Create a new process            │" << std::endl;
+    std::cout << "│  thread <pid> <name> [p]  Create thread in process        │" << std::endl;
+    std::cout << "│  spawn <name> [priority]  Quick spawn (process+thread)    │" << std::endl;
+    std::cout << "│  procs                    Show process tree               │" << std::endl;
+    std::cout << "│  ps                       List all threads                │" << std::endl;
+    std::cout << "│  kill <tid>               Terminate a thread              │" << std::endl;
+    std::cout << "├───────────────────────────────────────────────────────────┤" << std::endl;
+    std::cout << "│  SYSTEM                                                   │" << std::endl;
+    std::cout << "│  run [cycles]             Execute CPU cycles              │" << std::endl;
+    std::cout << "│  mem                      Show memory map                 │" << std::endl;
+    std::cout << "│  files                    Show inode table                │" << std::endl;
+    std::cout << "│  help                     Show this help                  │" << std::endl;
+    std::cout << "│  exit                     Shutdown MyOS                   │" << std::endl;
+    std::cout << "└───────────────────────────────────────────────────────────┘" << std::endl;
+    std::cout << "\n  Priority: 0 = HIGH, 1 = LOW (default)" << std::endl;
 }

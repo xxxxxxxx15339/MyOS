@@ -1,33 +1,35 @@
 #pragma once 
 #include <string> 
 
-enum class TaskState {
+enum class ThreadState {
   READY,
   RUNNING,
   BLOCKED,
   TERMINATED
 };
 
-class Task {
+class Thread {
   private:
-    int id;                 // ID (PID)
+    int id;                 // Thread ID (TID)
+    int parentPid;          // Parent Process ID
     std::string name;       // Debug name  
-    TaskState state;        // Current status 
-    int ProgramCounter;     // Simulated Instruction Pointer
+    ThreadState state;      // Current status 
+    int programCounter;     // Simulated Instruction Pointer
     int priority;           // Priority (0=High, 1=Low) 
 
   public:
-    Task(int id, std::string name, int priority = 1);
+    Thread(int id, int parentPid, const std::string& name, int priority = 1);
 
     // Getters
     int getId() const;
+    int getParentPid() const;
     std::string getName() const;
-    TaskState getState() const;
+    ThreadState getState() const;
     int getProgramCounter() const; 
     int getPriority() const; 
 
     // Setters / Control 
-    void setState(TaskState s);
+    void setState(ThreadState s);
     void setProgramCounter(int pc);
     void incrementProgramCounter();
 };
