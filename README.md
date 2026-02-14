@@ -204,17 +204,5 @@ This project was built following concepts from:
 - "Operating Systems: Three Easy Pieces" (Arpaci-Dusseau)
 - "Modern Operating Systems" (Tanenbaum)
 
-## 🛠️ Future Improvements
-
-- [ ] Round-robin time slicing with simulated timer
-- [ ] Virtual memory with page tables
-- [ ] Directory hierarchy in file system
-- [ ] Multi-level feedback queue scheduler
-
-## 📄 License
-
-MIT License - Feel free to use this for learning!
-
----
 
 *Built as a hands-on exploration of operating system internals.*
